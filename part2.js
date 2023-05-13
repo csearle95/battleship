@@ -149,12 +149,12 @@ function playGame() {
     console.log('----------------------------------');
     const input = readline.question('Enter the target position (e.g., A5): ');
 
-    if (input.length !== 2) {
+    if (input.length !== 2 && input.length !== 3) {
       console.log('Invalid input. Please try again.');
       continue;
     }
 
-    const row = parseInt(input[1]) - 1;
+    const row = parseInt(input.slice(1)) - 1;
     const col = input.toUpperCase().charCodeAt(0) - 65;
 
     if (isNaN(row) || row < 0 || row >= size || isNaN(col) || col < 0 || col >= size) {
@@ -183,4 +183,5 @@ function playGame() {
 }
 
 playGame();
+
 
