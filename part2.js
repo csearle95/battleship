@@ -1,168 +1,186 @@
-const readlineSync = require('readline-sync');
+const readline = require('readline-sync');
 
-let boardSize = 0;
-let grid = [];
-const ships = [
-  { name: 'Carrier', size: 5 },
-  { name: 'Battleship', size: 4 },
-  { name: 'Cruiser', size: 3 },
-  { name: 'Submarine', size: 3 },
-  { name: 'Destroyer', size: 2 }
-];
+function placeShip(grid, ship, row, col, orientation) {
+  const size = grid.length;
 
-// Function to generate the grid
-function generateGrid(size) {
+  if (orientation === 'horizontal' && col + ship.size > size) {
+    return false;
+  }
+
+  if (orientation === 'vertical' && row + ship.size > size) {
+    return false;
+  }
+
+  for (let i = 0; i < ship.size; i++) {
+    if (orientation === 'horizontal') {
+      if (grid[row][col + i] !== '-') {
+        return false;
+      }
+    } else {
+      if (grid[row + i][col] !== '-') {
+        return false;
+      }
+    }
+  }
+
+  for (let i = 0; i < ship.size; i++) {
+    if (orientation === 'horizontal') {
+      grid[row][col + i] = ship.name.charAt(0);
+      ship.coordinates.push([row, col + i]);
+    } else {
+      grid[row + i][col] = ship.name.charAt(0);
+      ship.coordinates.push([row + i, col]);
+    }
+  }
+
+  return true;
+}
+
+function createGridWithShips(size) {
   const grid = [];
   for (let i = 0; i < size; i++) {
-    grid.push(new Array(size).fill('-'));
+    const row = [];
+    for (let j = 0; j < size; j++) {
+      row.push('-');
+    }
+    grid.push(row);
   }
-  return grid;
-}
 
-// Function to place the ships on the grid
-function placeShips() {
+  const ships = [
+    { name: 'Carrier', size: 5, coordinates: [] },
+    { name: 'Battleship', size: 4, coordinates: [] },
+    { name: 'Cruiser', size: 3, coordinates: [] },
+    { name: 'Submarine', size: 3, coordinates: [] },
+    { name: 'Destroyer', size: 2, coordinates: [] }
+  ];
+
   for (const ship of ships) {
-    let placed = false;
-    while (!placed) {
-      const row = Math.floor(Math.random() * boardSize);
-      const col = Math.floor(Math.random() * boardSize);
+    while (true) {
       const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-
-      if (canPlaceShip(ship, row, col, orientation)) {
-        placeShip(ship, row, col, orientation);
-        placed = true;
+      const row = Math.floor(Math.random() * size);
+      const col = Math.floor(Math.random() * size);
+      if (placeShip(grid, ship, row, col, orientation)) {
+        break;
       }
     }
   }
+
+  return { grid, ships };
 }
 
-// Function to check if a ship can be placed at the specified coordinates
-function canPlaceShip(ship, row, col, orientation) {
-  if (orientation === 'horizontal') {
-    if (col + ship.size > boardSize) {
-      return false;
-    }
-    for (let c = col; c < col + ship.size; c++) {
-      if (grid[row][c] !== '-') {
-        return false;
-      }
-    }
-  } else if (orientation === 'vertical') {
-    if (row + ship.size > boardSize) {
-      return false;
-    }
-    for (let r = row; r < row + ship.size; r++) {
-      if (grid[r][col] !== '-') {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-// Function to place a ship at the specified coordinates
-function placeShip(ship, row, col, orientation) {
-  if (orientation === 'horizontal') {
-    for (let c = col; c < col + ship.size; c++) {
-      grid[row][c] = ship.name[0];
-    }
-  } else if (orientation === 'vertical') {
-    for (let r = row; r < row + ship.size; r++) {
-      grid[r][col] = ship.name[0];
-    }
-  }
-}
-
-// Function to process a strike at the specified coordinates
-function processStrike(coordinates) {
-  const col = coordinates.charCodeAt(0) - 65;
-  const row = parseInt(coordinates.slice(1)) - 1;
-
-  if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) {
-    console.log('Invalid coordinates. Try again.');
+function updateGrid(grid, ships, row, col) {
+  if (grid[row][col] === 'H' || grid[row][col] === 'M') {
+    console.log('You already shot at this position.');
     return;
   }
 
-  if (grid[row][col] === '-') {
-    console.log('You missed!');
-    grid[row][col] = 'M';
-  } else if (grid[row][col] === 'M' || grid[row][col] === 'H') {
-    console.log('You have already struck this location. Try again.');
-  } else {
-    const shipName = grid[row][col];
-    console.log(`You hit a ship! ${shipName} is hit!`);
-
-    grid[row][col] = 'H';
-    if (checkShipStatus(shipName)) {
-      console.log(`Congratulations! You have sunk the ${shipName}!`);
-      if (checkAllShipsDestroyed()) {
-        console.log('All ships have been destroyed. Game over!');
-        resetGame();
-      }
-    }
-  }
-}
-
-// Function to check the status of a ship
-function checkShipStatus(shipName) {
-  for (let row = 0; row < boardSize; row++) {
-    for (let col = 0; col < boardSize; col++) {
-      if (grid[row][col] === shipName) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-// Function to check if all ships have been destroyed
-function checkAllShipsDestroyed() {
+  let hit = false;
   for (const ship of ships) {
-    if (!checkShipStatus(ship.name)) {
-      return false;
+    for (const [x, y] of ship.coordinates) {
+      if (x === row && y === col) {
+        hit = true;
+        grid[row][col] = 'H';
+        break;
+      }
     }
-  }
-  return true;
-}
-
-// Function to reset the game
-function resetGame() {
-  grid = generateGrid(boardSize);
-  placeShips();
-}
-
-// Function to start the game
-function startGame() {
-  console.log('Welcome to Battleship!');
-  console.log('Enter the size of the board (3-10):');
-  boardSize = parseInt(readlineSync.question('> '));
-
-  if (isNaN(boardSize) || boardSize < 3 || boardSize > 10) {
-    console.log('Invalid board size. Please enter a number between 3 and 10.');
-    return;
-  }
-
-  grid = generateGrid(boardSize);
-  placeShips();
-
-  console.log('Game started!');
-  console.log('Enter coordinates to strike (e.g., A1, B2, C3) or type "exit" to quit.');
-
-  while (true) {
-    const input = readlineSync.question('> ');
-    if (input.toLowerCase() === 'exit') {
-      console.log('Goodbye!');
+    if (hit) {
       break;
     }
-    processStrike(input.toUpperCase());
-    console.table(grid);
+  }
+
+  if (hit) {
+    console.log('Hit!');
+    for (const ship of ships) {
+      if (checkShipSunk(grid, ships, ship.name)) {
+        console.log(`You sank the ${ship.name}!`);
+      }
+    }
+  } else {
+    console.log('Miss!');
+    grid[row][col] = 'M';
+  }
+}
+function displayGrid(grid) {
+  const headers = [];
+  for (let i = 0; i < grid.length; i++) {
+    headers.push(String.fromCharCode(65 + i));
+  }
+
+  console.log(`   ${headers.join(' ')}`);
+  for (let i = 0; i < grid.length; i++) {
+    const row = grid[i];
+    const rowDisplay = row.map(cell => {
+      if (cell === '-') {
+        return '-';
+      } else if (cell === 'H' || cell === 'M') {
+        return cell;
+      } else {
+        return '-';
+      }
+    });
+
+    console.log(`${i + 1} |${rowDisplay.join(' ')}`);
   }
 }
 
-// Start the game
-startGame();
+function checkShipSunk(grid, ships, shipName) {
+  for (const ship of ships) {
+    if (ship.name === shipName) {
+      for (const [row, col] of ship.coordinates) {
+        if (grid[row][col] !== 'H') {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
 
+function playGame() {
+  console.log('Welcome to Battleship!');
 
+  const size = parseInt(readline.question('Enter the grid size: '));
 
+  const { grid, ships } = createGridWithShips(size);
+  displayGrid(grid);
 
+  while (true) {
+    console.log('----------------------------------');
+    const input = readline.question('Enter the target position (e.g., A5): ');
+
+    if (input.length !== 2) {
+      console.log('Invalid input. Please try again.');
+      continue;
+    }
+
+    const row = parseInt(input[1]) - 1;
+    const col = input.toUpperCase().charCodeAt(0) - 65;
+
+    if (isNaN(row) || row < 0 || row >= size || isNaN(col) || col < 0 || col >= size) {
+      console.log('Invalid input. Please try again.');
+      continue;
+    }
+
+    updateGrid(grid, ships, row, col);
+    displayGrid(grid);
+
+    let allShipsSunk = true;
+    for (const ship of ships) {
+      if (!checkShipSunk(grid, ships, ship.name)) {
+        allShipsSunk = false;
+        break;
+      }
+    }
+
+    if (allShipsSunk) {
+      console.log('Congratulations! You sank all the ships!');
+      break;
+    }
+  }
+
+  console.log('Game Over!');
+}
+
+playGame();
 
