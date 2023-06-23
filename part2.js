@@ -140,46 +140,56 @@ function checkShipSunk(grid, ships, shipName) {
 function playGame() {
   console.log('Welcome to Battleship!');
 
-  const size = parseInt(readline.question('Enter the grid size: '));
+  let playAgain = true;
 
-  const { grid, ships } = createGridWithShips(size);
-  displayGrid(grid);
+  while (playAgain) {
+    const size = parseInt(readline.question('Enter the grid size: '));
 
-  while (true) {
-    console.log('----------------------------------');
-    const input = readline.question('Enter the target position (e.g., A5): ');
-
-    if (input.length !== 2 && input.length !== 3) {
-      console.log('Invalid input. Please try again.');
-      continue;
-    }
-
-    const row = parseInt(input.slice(1)) - 1;
-    const col = input.toUpperCase().charCodeAt(0) - 65;
-
-    if (isNaN(row) || row < 0 || row >= size || isNaN(col) || col < 0 || col >= size) {
-      console.log('Invalid input. Please try again.');
-      continue;
-    }
-
-    updateGrid(grid, ships, row, col);
+    const { grid, ships } = createGridWithShips(size);
     displayGrid(grid);
 
-    let allShipsSunk = true;
-    for (const ship of ships) {
-      if (!checkShipSunk(grid, ships, ship.name)) {
-        allShipsSunk = false;
-        break;
-      }
-    }
+    while (true) {
+      console.log('----------------------------------');
+      const input = readline.question('Enter the target position (e.g., A5): ');
 
-    if (allShipsSunk) {
-      console.log('Congratulations! You sank all the ships!');
-      break;
+      if (input.length !== 2 && input.length !== 3) {
+        console.log('Invalid input. Please try again.');
+        continue;
+      }
+
+      const row = parseInt(input.slice(1)) - 1;
+      const col = input.toUpperCase().charCodeAt(0) - 65;
+
+      if (isNaN(row) || row < 0 || row >= size || isNaN(col) || col < 0 || col >= size) {
+        console.log('Invalid input. Please try again.');
+        continue;
+      }
+
+      updateGrid(grid, ships, row, col);
+      displayGrid(grid);
+
+      let allShipsSunk = true;
+      for (const ship of ships) {
+        if (!checkShipSunk(grid, ships, ship.name)) {
+          allShipsSunk = false;
+          break;
+        }
+      }
+
+      if (allShipsSunk) {
+        console.log('Congratulations! You sank all the ships!');
+        const restart = readline.question('Do you want to play again? (y/n): ');
+        if (restart.toLowerCase() === 'y') {
+          break; // Restart the game by breaking out of the inner while loop
+        } else {
+          playAgain = false; // Exit the game by setting playAgain to false
+          break; // Exit the inner while loop
+        }
+      }
     }
   }
 
-  console.log('Game Over!');
+  console.log('Thank you for playing Battleship!');
 }
 
 playGame();
